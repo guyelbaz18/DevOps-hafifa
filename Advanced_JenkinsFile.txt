@@ -1,0 +1,56 @@
+pipeline {
+    agent {label 'linux'}
+    
+    environment {
+        AGENT = 'linux'
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                echo '*********** Checkout **********'
+                checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '12124704-2b01-450a-bdfb-4549d3062370', url: 'http://10.11.1.244/root/project1.git']]])
+                echo "the agent is ${env.NODE_NAME}"
+                script {
+                    numbers = [1,2,3]
+                    for (i in numbers) {
+                        echo "${i}"
+                    }
+                }
+            }
+        }
+        stage('Build') {
+            steps {
+                echo '********** Build **********'
+                script {
+                    agent_type = env.NODE_NAME
+                    if ("${agent_type}" == 'linux') {
+                        echo "${agent_type} yay!"
+                        sh label: '', script: 'pyinstaller --onefile /var/lib/jenkins/workspace/JenkinsFile_CI_Ex/app.py'
+                    } else {
+                        echo "This is $agent_type agent. I only execute on the linux agent"
+                        return
+                    }
+                }
+            }
+        }
+        stage('Tar') {
+            steps {
+                echo '********** Tar **********'
+                sh 'tar -czvf FinalVersion.tar.gz /var/lib/jenkins/workspace/JenkinsFile_CI_Ex/build /var/lib/jenkins/workspace/JenkinsFile_CI_Ex/dist'
+            }
+        }
+        stage('Archive') {
+            steps {
+                echo '********** Archive **********'
+                archiveArtifacts 'FinalVersion.tar.gz'
+            }
+        }
+        stage('Clean') {
+            steps {
+                echo '********** Clean **********'
+                cleanWs notFailBuild: true
+            }
+        }
+    }
+}

@@ -1,0 +1,36 @@
+pipeline {
+    agent {label 'linux'}
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo '*********** Checkout **********'
+                checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '12124704-2b01-450a-bdfb-4549d3062370', url: 'http://10.11.1.244/root/project1.git']]])
+            }
+        }
+        stage('Build') {
+            steps {
+                echo '********** Build **********'
+                sh label: '', script: 'pyinstaller --onefile /var/lib/jenkins/workspace/JenkinsFile_CI_Ex/app.py'
+            }
+        }
+        stage('Tar') {
+            steps {
+                echo '********** Tar **********'
+                sh 'tar -czvf FinalVersion.tar.gz /var/lib/jenkins/workspace/JenkinsFile_CI_Ex/build /var/lib/jenkins/workspace/JenkinsFile_CI_Ex/dist'
+            }
+        }
+        stage('Archive') {
+            steps {
+                echo '********** Archive **********'
+                archiveArtifacts 'FinalVersion.tar.gz'
+            }
+        }
+        stage('Clean') {
+            steps {
+                echo '********** Clean **********'
+                cleanWs notFailBuild: true
+            }
+        }
+    }
+}
